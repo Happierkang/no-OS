@@ -58,6 +58,10 @@
 #include "ad9517.h"
 #include "parameters.h"
 
+#ifdef IIO_SUPPORT
+#include "app_iio.h"
+#endif
+
 /* ADC registers */
 #define CF_REG_DELAY_CTRL			0x60
 #define CF_REG_DELAY_STATUS			0x20
@@ -252,6 +256,23 @@ int main()
 
 	axi_dmac_transfer(ad9467_dmac, ADC_DDR_BASEADDR,
 			  16384 * 2);
+
+#ifdef IIO_SUPPORT
+	printf("The board accepts libiio clients connections through the serial backend.\n");
+
+	struct iio_axi_adc_init_param iio_axi_adc_init_par;
+	iio_axi_adc_init_par = (struct iio_axi_adc_init_param) {
+		.rx_adc = ad9467_core,
+		.rx_dmac = ad9467_dmac,
+		.adc_ddr_base = ADC_DDR_BASEADDR,
+#ifndef PLATFORM_MB
+		.dcache_invalidate_range = (void (*)(uint32_t,
+						     uint32_t))Xil_DCacheInvalidateRange
+#endif
+	};
+
+	return iio_server_init(&iio_axi_adc_init_par);
+#endif
 
 	printf("Done.\n\r");
 
